@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  redis:
+    image: "redis:6.2.5"
+    ports:
+      - "6379:6379"
+      
+  publisher:
+    build:
+      context: .
+      dockerfile: docker/redis-publisher.Dockerfile
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CHANNEL_NAME: device_events
+      
+  simple-listener:
+    build:
+      context: .
+      dockerfile: docker/redis-listener.Dockerfile
+    depends_on:
+      - redis
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CHANNEL_NAME: device_events
+
