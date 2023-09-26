@@ -15,15 +15,15 @@ class RedisPubSubSource(StatefulSource):
         self.pubsub.subscribe(channel)
         self.channel = channel
 
-    def next(self):  # noqa
+    def next_batch(self):
         message = self.pubsub.get_message()
         # would not need this if ignoring subscribe, but juuust in case
         if message is None:
-            return None
+            return []
         data = message['data']
         if isinstance(data, bytes):
             data = data.decode('utf-8')
-        return data
+        return [data]
 
     def snapshot(self):
         return None
@@ -39,7 +39,7 @@ class RedisPubSubInput(PartitionedInput):
         self.channel_name = os.getenv('REDIS_CHANNEL_NAME', 'device_events')
 
     def list_parts(self):
-        return {'single-part'}
+        return ['single-part']
 
     def build_part(self, for_key, resume_state):
         assert for_key == 'single-part'
