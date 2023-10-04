@@ -2,28 +2,58 @@ version: '3.8'
 
 services:
   redis:
-    image: "redis:6.2.5"
+    image: "redis:7.2.1"
     ports:
       - "6379:6379"
       
-  publisher:
+  simple-publisher:
     build:
       context: .
-      dockerfile: docker/redis-publisher.Dockerfile
+      dockerfile: docker/redis-simple.Dockerfile
+    command: python /app/redis_publisher.py
     depends_on:
       - redis
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_CHANNEL_NAME: device_events
+      EVENTS_JSONL_FILE: /data/events.jsonl
+    volumes:
+      - ./data:/data
       
-  simple-listener:
+#  simple-listener:
+#    build:
+#      context: .
+#      dockerfile: docker/redis-simple.Dockerfile
+#    command: python /app/redis_listener.py
+#    depends_on:
+#      - redis
+#    environment:
+#      REDIS_HOST: redis
+#      REDIS_PORT: 6379
+#      REDIS_CHANNEL_NAME: device_events
+
+#  bytewax-echo:
+#    build:
+#      context: .
+#      dockerfile: docker/redis-bytewax.Dockerfile
+#    command: python -m bytewax.run /app/dataflow_echo.py:flow
+#    depends_on:
+#      - redis
+#    environment:
+#      REDIS_HOST: redis
+#      REDIS_PORT: 6379
+#      REDIS_CHANNEL_NAME: device_events
+
+  bytewax-counts:
     build:
       context: .
-      dockerfile: docker/redis-listener.Dockerfile
+      dockerfile: docker/redis-bytewax.Dockerfile
+    command: python -m bytewax.run /app/dataflow_mobile_counts.py:flow
     depends_on:
       - redis
     environment:
+      PYTHONPATH: /app/
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_CHANNEL_NAME: device_events

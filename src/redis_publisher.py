@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 CHANNEL_NAME = os.getenv('REDIS_CHANNEL_NAME', 'device_events')
-JSONL_FILE = 'events.jsonl'
+JSONL_FILE = os.getenv('EVENTS_JSONL_FILE', 'events.jsonl')
 
 # Connect to Redis
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
