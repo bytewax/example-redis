@@ -1,0 +1,4 @@
+export REDIS_HOST=localhost
+export REDIS_PORT=31337
+export REDIS_CHANNEL_NAME=device_events
+export EVENTS_JSONL_FILE=$(pwd)/data/events.jsonl

@@ -1,11 +1,13 @@
 import json
 from datetime import timedelta, datetime, timezone
 
-from bytewax.connectors.stdio import StdOutput
+from bytewax import operators as op
+from bytewax.connectors.stdio import StdOutSink
 from bytewax.dataflow import Dataflow
-from bytewax.window import SystemClockConfig, TumblingWindow
+from bytewax.operators.window import SystemClockConfig, TumblingWindow
+from bytewax.operators import window as window_op
 
-from bytewax_redis_input import RedisPubSubInput
+from bytewax_redis_input import RedisPubSubSource
 
 
 def deserialize(payload):
@@ -37,13 +39,20 @@ window_config = TumblingWindow(
     align_to=datetime(2023, 1, 1, tzinfo=timezone.utc),
 )
 
-flow = Dataflow()
+flow = Dataflow('dataflow_mobile_counts')
 
-flow.input('inp', RedisPubSubInput())
+inp = op.input('redis_inp', flow, RedisPubSubSource())
+des = op.map('deserialize', inp, deserialize)
 
-flow.map(deserialize)
-flow.map(initial_count)
-flow.reduce_window('sum', clock_config, window_config, add)
-flow.map(jsonify)
+init_count = op.map('initial_count', des, initial_count)
+reduce = window_op.reduce_window(
+    'sum',
+    init_count,
+    clock_config,
+    window_config,
+    add,
+)
 
-flow.output('out', StdOutput())
+serialize = op.map('jsonify', reduce, jsonify)
+
+op.output('out', serialize, StdOutSink())

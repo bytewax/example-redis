@@ -2,10 +2,10 @@ import os
 
 import redis
 
-from bytewax.inputs import PartitionedInput, StatefulSource
+from bytewax.inputs import FixedPartitionedSource, StatefulSourcePartition
 
 
-class RedisPubSubSource(StatefulSource):
+class RedisPubSubPartition(StatefulSourcePartition[str, None]):
     def __init__(self, redis_host, redis_port, channel):
         r = redis.Redis(host=redis_host, port=redis_port)
         # self.pubsub = r.pubsub()
@@ -13,7 +13,7 @@ class RedisPubSubSource(StatefulSource):
         self.pubsub.subscribe(channel)
         self.channel = channel
 
-    def next_batch(self):
+    def next_batch(self, _sched):
         message = self.pubsub.get_message()
         # ignore subscribe messages to get rid of 1 etc
         if message is None:
@@ -30,7 +30,7 @@ class RedisPubSubSource(StatefulSource):
         self.pubsub.close()
 
 
-class RedisPubSubInput(PartitionedInput):
+class RedisPubSubSource(FixedPartitionedSource[str, None]):
     def __init__(self):
         self.redis_host = os.getenv('REDIS_HOST', 'localhost')
         self.redis_port = os.getenv('REDIS_PORT', '6379')
@@ -39,10 +39,10 @@ class RedisPubSubInput(PartitionedInput):
     def list_parts(self):
         return ('single-part',)
 
-    def build_part(self, for_key, resume_state):
+    def build_part(self, now, for_key, resume_state):
         assert for_key == 'single-part'
         assert resume_state is None
-        return RedisPubSubSource(
+        return RedisPubSubPartition(
             self.redis_host,
             self.redis_port,
             self.channel_name,
