@@ -13,13 +13,16 @@ logger = logging.getLogger(__name__)
 # Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
-# REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 CHANNEL_NAME = os.getenv('REDIS_CHANNEL_NAME', 'device_events')
 JSONL_FILE = os.getenv('EVENTS_JSONL_FILE', 'data/events.jsonl')
 
 # Connect to Redis
-# r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
-r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+if not REDIS_PASSWORD:
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+else:
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+
 
 
 # Read the .jsonl file and publish to the Redis channel
