@@ -2,20 +2,20 @@ import os
 
 import redis
 
-from bytewax.inputs import PartitionedInput, StatefulSource
+from bytewax.inputs import FixedPartitionedSource, StatefulSourcePartition
 
 
-class RedisPubSubSource(StatefulSource):
-    def __init__(self, redis_host, redis_port, channel):
-        r = redis.Redis(host=redis_host, port=redis_port)
-        # self.pubsub = r.pubsub()
+class RedisPubSubPartition(StatefulSourcePartition):
+    def __init__(self, redis_host, redis_port, redis_pass, channel):
+        if not redis_pass:
+            r = redis.Redis(host=redis_host, port=redis_port)
+        else: 
+            r = redis.Redis(host=redis_host, port=redis_port, password=redis_pass)
         self.pubsub = r.pubsub(ignore_subscribe_messages=True)
         self.pubsub.subscribe(channel)
-        self.channel = channel
 
-    def next_batch(self):
+    def next_batch(self, _sched):
         message = self.pubsub.get_message()
-        # ignore subscribe messages to get rid of 1 etc
         if message is None:
             return []
         data = message['data']
@@ -30,20 +30,20 @@ class RedisPubSubSource(StatefulSource):
         self.pubsub.close()
 
 
-class RedisPubSubInput(PartitionedInput):
+class RedisPubSubSource(FixedPartitionedSource):
     def __init__(self):
         self.redis_host = os.getenv('REDIS_HOST', 'localhost')
-        self.redis_port = os.getenv('REDIS_PORT', '6379')
+        self.redis_port = int(os.getenv('REDIS_PORT', '6379'))
+        self.redis_pass = os.getenv('REDIS_PASSWORD', None)
         self.channel_name = os.getenv('REDIS_CHANNEL_NAME', 'device_events')
 
     def list_parts(self):
-        return ('single-part',)
+        return ['single-part']
 
-    def build_part(self, for_key, resume_state):
-        assert for_key == 'single-part'
-        assert resume_state is None
-        return RedisPubSubSource(
+    def build_part(self, now, for_key, resume_state):
+        return RedisPubSubPartition(
             self.redis_host,
             self.redis_port,
+            self.redis_pass,
             self.channel_name,
         )
